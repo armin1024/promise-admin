@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import Axios from 'axios'
 
 export function getList(params) {
   return request({
@@ -8,10 +9,18 @@ export function getList(params) {
   })
 }
 
-export function addRecord(data) {
+export function addRecord(params) {
   return request({
     url: '/promise/reserve',
     method: 'post',
-    data
+    params
+  })
+}
+
+export function delReocrd(params) {
+  return request({
+    url: '/promise/reserve',
+    method: 'delete',
+    params
   })
 }

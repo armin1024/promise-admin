@@ -18,7 +18,7 @@
       </el-form-item>
     </el-form>
 
-    <div align="right">
+    <div class="insertButton">
       <el-button class="button-container" type="primary" @click="dialogFormVisible = true">新增</el-button>
     </div>
 
@@ -66,21 +66,31 @@
           {{ scope.row.remark }}
         </template>
       </el-table-column>
+      <el-table-column label="操作" :label-width="formLabelWidth" width="150">
+        <template slot-scope="scope">
+          <el-popconfirm title="这是一段内容确定删除吗？"
+            @onConfirm="onDel(scope)">
+              <template #reference>
+                <span class="delClass">删除</span>
+              </template>
+            </el-popconfirm>
+        </template>
+      </el-table-column>
     </el-table>
 
-    <el-dialog title="收货地址" :visible.sync="dialogFormVisible">
-      <el-form :model="data">
-        <el-form-item label="活动名称" :label-width="formLabelWidth">
-          <el-input v-model="data.customerName" autocomplete="off"></el-input>
+    <el-dialog title="添加预约记录" :visible.sync="dialogFormVisible">
+      <el-form :model="insertData">
+        <el-form-item label="顾客" :label-width="formLabelWidth">
+          <el-input v-model="insertData.customerName" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item label="活动名称" :label-width="formLabelWidth">
-          <el-input v-model="data.reserveItems" autocomplete="off"></el-input>
+        <el-form-item label="预约项目" :label-width="formLabelWidth">
+          <el-input v-model="insertData.reserveItems" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item label="活动名称" :label-width="formLabelWidth">
-          <el-input v-model="data.reserveDate" autocomplete="off"></el-input>
+        <el-form-item label="预约日期" :label-width="formLabelWidth">
+          <el-input v-model="insertData.reserveDate" autocomplete="off"></el-input>
         </el-form-item>
-        <el-form-item label="活动名称" :label-width="formLabelWidth">
-          <el-input v-model="data.remark" autocomplete="off"></el-input>
+        <el-form-item label="备注" :label-width="formLabelWidth">
+          <el-input v-model="insertData.remark" autocomplete="off"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -88,14 +98,24 @@
         <el-button type="primary" @click="onInsert">确 定</el-button>
       </div>
     </el-dialog>
-
+    <div class="block">
+    <el-pagination
+      class="pageStyle"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="pages.pageNum"
+      :page-sizes="[10, 20, 50, 100]"
+      :page-size="10"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total">
+    </el-pagination>
+  </div>
   </div>
 </template>
 
 
 <script>
-import { getList } from '@/api/table'
-import { addRecord } from '@/api/table'
+import { addRecord,delReocrd,getList } from '@/api/table'
 
 export default {
   filters: {
@@ -110,6 +130,11 @@ export default {
   },
   data() {
     return {
+      pages: {
+        pageNum: 1,
+        pageSize: 10
+      },
+      total: 0,
       list: [
         {
           id: '',
@@ -127,7 +152,7 @@ export default {
         reserveDate: '',
         remark: ''
       },
-      data: {
+      insertData: {
         // id: '',
         customerName: '',
         reserveItems: '',
@@ -142,32 +167,63 @@ export default {
     this.fetchData()
   },
   methods: {
+    async onDel({row}){
+      try {
+        const data = await delReocrd({id:row.id})
+        this.getListCommon()
+      } catch (error) {
+        console.log(error)
+      }
+      
+    },
+    handleSizeChange(val) {
+        this.pages.pageSize = val
+        this.onSubmit()
+      },
+      handleCurrentChange(val) {
+        this.pages.pageNum = val;
+        this.onSubmit()
+    },
     fetchData() {
       this.listLoading = true
-      getList().then(response => {
-        this.list = response.body.records
-        this.listLoading = false
-      })
+      this.getListCommon()
     },
     onSubmit() {
       this.listLoading = true
-      getList(this.formInline).then(response => {
-        this.list = response.body.records
-        this.listLoading = false
-      })
+      this.getListCommon(this.formInline)
+    },
+    async getListCommon(query){
+      const params = {
+        ...this.pages,
+        ...query
+      }
+      const {body} = await getList(params)
+      this.total = body.total
+      this.list = body.records
+      this.listLoading = false
     },
     onInsert() {
       this.dialogFormVisible = false
       this.listLoading = true
-      console.log(this.data)
-      addRecord(this.data).then(response => {
-        console.log(response)
-      })
-      getList(this.formInline).then(response => {
-        this.list = response.body.records
-        this.listLoading = false
+      // console.log(this.insertData)
+      addRecord(this.insertData).then(response => {
+        this.getListCommon(this.formInline)
+      }).catch(e => {
+        his.getListCommon(this.formInline)
       })
     }
   }
 }
 </script>
+<style scoped>
+.pageStyle{
+  padding:20px;
+}
+.insertButton{
+  padding:20px;
+  text-align:right;
+}
+.delClass{
+  color: red;
+}
+</style>
